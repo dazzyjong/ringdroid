@@ -159,6 +159,13 @@
        android:layout_marginLeft="10dip"
        android:gravity="center" />
 
+        <Button
+            android:id="@+id/appendButton"
+            android:layout_width="50dp"
+            android:layout_height="30dp"
+            android:text="append"
+            />
+
     </LinearLayout>
 
 </LinearLayout>

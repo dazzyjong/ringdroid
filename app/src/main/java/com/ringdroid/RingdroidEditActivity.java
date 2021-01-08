@@ -94,6 +94,7 @@ public class RingdroidEditActivity extends Activity
     private int mMaxPos;
     private int mStartPos;
     private int mEndPos;
+    private int mPausedPos;
     private boolean mStartVisible;
     private boolean mEndVisible;
     private int mLastDisplayedStartPos;
@@ -137,7 +138,7 @@ public class RingdroidEditActivity extends Activity
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle icicle) {
-        Log.v("Ringdroid", "EditActivity OnCreate");
+        Log.v("RingdroidEditActivity", "EditActivity OnCreate");
         super.onCreate(icicle);
 
         mPlayer = null;
@@ -187,7 +188,7 @@ public class RingdroidEditActivity extends Activity
     /** Called when the activity is finally destroyed. */
     @Override
     protected void onDestroy() {
-        Log.v("Ringdroid", "EditActivity OnDestroy");
+        Log.v("RingdroidEditActivity", "EditActivity OnDestroy");
 
         mLoadingKeepGoing = false;
         mRecordingKeepGoing = false;
@@ -222,7 +223,7 @@ public class RingdroidEditActivity extends Activity
     protected void onActivityResult(int requestCode,
                                     int resultCode,
                                     Intent dataIntent) {
-        Log.v("Ringdroid", "EditActivity onActivityResult");
+        Log.v("RingdroidEditActivity", "EditActivity onActivityResult");
         if (requestCode == REQUEST_CODE_CHOOSE_CONTACT) {
             // The user finished saving their ringtone and they're
             // just applying it to a contact.  When they return here,
@@ -239,7 +240,7 @@ public class RingdroidEditActivity extends Activity
      */
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
-        Log.v("Ringdroid", "EditActivity onConfigurationChanged");
+        Log.v("RingdroidEditActivity", "EditActivity onConfigurationChanged");
         final int saveZoomLevel = mWaveformView.getZoomLevel();
         super.onConfigurationChanged(newConfig);
 
@@ -640,7 +641,6 @@ public class RingdroidEditActivity extends Activity
             public void run() {
                 try {
                     mSoundFile = SoundFile.create(mFile.getAbsolutePath(), listener);
-
                     if (mSoundFile == null) {
                         mProgressDialog.dismiss();
                         String name = mFile.getName().toLowerCase();
@@ -1060,7 +1060,9 @@ public class RingdroidEditActivity extends Activity
         if (mPlayer != null && mPlayer.isPlaying()) {
             mPlayer.pause();
         }
-        mWaveformView.setPlayback(-1);
+//        mWaveformView.setPlayback(-1);
+        mPausedPos = mWaveformView.millisecsToPixels(mPlayer.getCurrentPosition());
+        Log.d("RingdroidEditActivity", "handlePause mEndPos = " + mEndPos + " mPausedPos = " + mPausedPos);
         mIsPlaying = false;
         enableDisableButtons();
     }
@@ -1091,6 +1093,8 @@ public class RingdroidEditActivity extends Activity
                     handlePause();
                 }
             });
+            Log.d("RingdroidEditActivity", "startPosition = " + startPosition + " mEndPos = " + mEndPos + " mPlayStartMsec = " + mPlayStartMsec);
+
             mIsPlaying = true;
 
             mPlayer.seekTo(mPlayStartMsec);
@@ -1113,12 +1117,12 @@ public class RingdroidEditActivity extends Activity
     private void showFinalAlert(Exception e, CharSequence message) {
         CharSequence title;
         if (e != null) {
-            Log.e("Ringdroid", "Error: " + message);
-            Log.e("Ringdroid", getStackTrace(e));
+            Log.e("RingdroidEditActivity", "Error: " + message);
+            Log.e("RingdroidEditActivity", getStackTrace(e));
             title = getResources().getText(R.string.alert_title_failure);
             setResult(RESULT_CANCELED, new Intent());
         } else {
-            Log.v("Ringdroid", "Success: " + message);
+            Log.v("RingdroidEditActivity", "Success: " + message);
             title = getResources().getText(R.string.alert_title_success);
         }
 
@@ -1247,8 +1251,8 @@ public class RingdroidEditActivity extends Activity
                     }
                     StringWriter writer = new StringWriter();
                     e.printStackTrace(new PrintWriter(writer));
-                    Log.e("Ringdroid", "Error: Failed to create " + outPath);
-                    Log.e("Ringdroid", writer.toString());
+                    Log.e("RingdroidEditActivity", "Error: Failed to create " + outPath);
+                    Log.e("RingdroidEditActivity", writer.toString());
                     fallbackToWAV = true;
                 }
 
@@ -1493,7 +1497,7 @@ public class RingdroidEditActivity extends Activity
                 "com.ringdroid.ChooseContactActivity");
             startActivityForResult(intent, REQUEST_CODE_CHOOSE_CONTACT);
         } catch (Exception e) {
-            Log.e("Ringdroid", "Couldn't open Choose Contact window");
+            Log.e("RingdroidEditActivity", "Couldn't open Choose Contact window");
         }
     }
 
@@ -1517,7 +1521,12 @@ public class RingdroidEditActivity extends Activity
 
     private OnClickListener mPlayListener = new OnClickListener() {
             public void onClick(View sender) {
-                onPlay(mStartPos);
+                Log.d("RingdroidEditActivity", "play click mStartPos = " + mStartPos + " mPausedPos = " + mPausedPos + " mEndPos = " + mEndPos);
+                if (mPausedPos >= mStartPos && mPausedPos < mEndPos) {
+                    onPlay(mPausedPos);
+                } else if (mPausedPos >= mEndPos) {
+                    onPlay(mStartPos);
+                }
             }
         };
 
